@@ -24,6 +24,7 @@ from lib.utils import md5
 CSV_FILE_NAME = "data/mifit.csv"
 
 fig_to_plot = {}
+composite_trend_fig_to_plot = {}
 cur_file_hash = None
 cur_df: Optional[pd.DataFrame] = None
 cur_resampled_df: Optional[pd.DataFrame] = None
@@ -45,9 +46,12 @@ _EMW_SPAN_GLOBAL_VARIABLE = 24
 
 def _plot_fig(labels_to_plot):
     print("Plotting...")
-    return get_plotted_fig_all(
+    fig = get_plotted_fig_all(
         cur_df, cur_resampled_df, labels_to_plot, emw_span=_EMW_SPAN_GLOBAL_VARIABLE
     )
+    # setup margin for the plot
+    set_tight_margin(fig)
+    return fig
 
 
 def get_fig(labels_to_plot, force_update=False):
@@ -56,6 +60,7 @@ def get_fig(labels_to_plot, force_update=False):
     if md5(CSV_FILE_NAME) != cur_file_hash:
         # remove all existing plot.
         fig_to_plot.clear()
+        composite_trend_fig_to_plot.clear()
         # reset the file hash
         cur_file_hash = md5(CSV_FILE_NAME)
         cur_df = pd.read_csv(CSV_FILE_NAME)
@@ -105,6 +110,7 @@ def get_fig(labels_to_plot, force_update=False):
     ],
     [],
 )
+@profile
 def update_figure_cb(
     n_clicks,
     fig_height,
@@ -133,14 +139,14 @@ def update_figure_cb(
     if not ctx.triggered:
         # initial call when no fig had been created yet
         composite_fig = get_composit_trend_fig(
-            trend_show_past_x_days, trend_smoothing_span
+            trend_show_past_x_days, trend_smoothing_span, force_update=force_update
         )
     elif any(
         token in triggered
         for token in ["trend_show_past_x_days", "trend_smoothing_span"]
     ):
         composite_fig = get_composit_trend_fig(
-            trend_show_past_x_days, trend_smoothing_span
+            trend_show_past_x_days, trend_smoothing_span, force_update=force_update
         )
         return (
             dash.no_update,
@@ -197,9 +203,6 @@ def update_figure_cb(
             # find the corresponding yaxis in the layout object and set the yrange
             fig.layout[f'yaxis{d["yaxis"][1:]}'].range = yrange
 
-    # setup margin for the plot
-    set_tight_margin(fig)
-
     # update title and the latest data point
     last_update_time = humanize.naturaltime(last_measurement_time.replace(tzinfo=None))
     fig.update_layout(title=f"{title} (last update: {last_update_time})")
@@ -232,7 +235,19 @@ def update_figure_cb(
     )
 
 
-def get_composit_trend_fig(last_x_days, trend_smoothing_span):
+def get_composit_trend_fig(last_x_days, trend_smoothing_span, force_update=False):
+    # plot if necessary
+    # NOTE that we do not need to handle file-changing here as it's handled by the
+    # main stat plotting.
+    _hash = hash((last_x_days, trend_smoothing_span))
+    if force_update or _hash not in composite_trend_fig_to_plot:
+        composite_trend_fig_to_plot[_hash] = _plot_composit_trend_fig(
+            last_x_days, trend_smoothing_span, force_update
+        )
+    return composite_trend_fig_to_plot[_hash]
+
+
+def _plot_composit_trend_fig(last_x_days, trend_smoothing_span, force_update=False):
     beginning_date = datetime.datetime.now() - datetime.timedelta(days=last_x_days)
     composite_fig = get_fig_body_composite_trend(
         cur_df.copy(),
