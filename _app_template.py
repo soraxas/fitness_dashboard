@@ -83,7 +83,8 @@ controls = dbc.FormGroup(
 )
 
 sidebar = html.Div(
-    [html.H2("Parameters", style=TEXT_STYLE), html.Hr(), controls], style=SIDEBAR_STYLE,
+    [html.H2("Parameters", style=TEXT_STYLE), html.Hr(), controls],
+    style=SIDEBAR_STYLE,
 )
 
 content_first_row = dbc.Row(
@@ -172,7 +173,14 @@ content_second_row = dbc.Row(
     ]
 )
 
-content_third_row = dbc.Row([dbc.Col(dcc.Graph(id="graph_4"), md=12,)])
+content_third_row = dbc.Row(
+    [
+        dbc.Col(
+            dcc.Graph(id="graph_4"),
+            md=12,
+        )
+    ]
+)
 
 content_fourth_row = dbc.Row(
     [dbc.Col(dcc.Graph(id="graph_5"), md=6), dbc.Col(dcc.Graph(id="graph_6"), md=6)]
