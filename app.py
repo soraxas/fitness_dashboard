@@ -21,7 +21,7 @@ from lib.my_plotter import (
 from lib.utils import md5
 
 ############################################
-CSV_FILE_NAME = "mifit.csv"
+CSV_FILE_NAME = "data/mifit.csv"
 
 fig_to_plot = {}
 cur_file_hash = None
