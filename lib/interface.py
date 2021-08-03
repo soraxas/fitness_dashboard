@@ -55,8 +55,6 @@ def construct_page_content(app):
                     id="check_list",
                     options=[
                         {"label": "Fill under curve", "value": "fill_under"},
-                        {"label": "Value Two", "value": "value2"},
-                        {"label": "Value Three", "value": "value3"},
                     ],
                     value=["fill_under"],
                     inline=True,
