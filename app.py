@@ -110,7 +110,6 @@ def get_fig(labels_to_plot, force_update=False):
     ],
     [],
 )
-@profile
 def update_figure_cb(
     n_clicks,
     fig_height,
