@@ -8,7 +8,7 @@ import dash_html_components as html
 import humanize
 import numpy as np
 import pandas as pd
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 from lib import update_csv_via_rest
 from lib.interface import construct_page_content
@@ -18,7 +18,7 @@ from lib.my_plotter import (
     _get_resampled_df,
     get_fig_body_composite_trend,
 )
-from lib.utils import md5
+from lib.utils import md5, get_df_after_given_date
 
 ############################################
 CSV_FILE_NAME = "data/mifit.csv"
@@ -44,17 +44,17 @@ app.layout = html.Div([sidebar, content])
 _EMW_SPAN_GLOBAL_VARIABLE = 24
 
 
-def _plot_fig(labels_to_plot):
+def _plot_fig(df, resampled_df, labels_to_plot):
     print("Plotting...")
     fig = get_plotted_fig_all(
-        cur_df, cur_resampled_df, labels_to_plot, emw_span=_EMW_SPAN_GLOBAL_VARIABLE
+        df, resampled_df, labels_to_plot, emw_span=_EMW_SPAN_GLOBAL_VARIABLE
     )
     # setup margin for the plot
     set_tight_margin(fig)
     return fig
 
 
-def get_fig(labels_to_plot, force_update=False):
+def get_fig(labels_to_plot, force_update=False, plot_since=None):
     # first check if file content had changed
     global cur_file_hash, cur_df, cur_resampled_df
     if md5(CSV_FILE_NAME) != cur_file_hash:
@@ -72,10 +72,16 @@ def get_fig(labels_to_plot, force_update=False):
 
         cur_resampled_df = _get_resampled_df(cur_df)
 
+    if plot_since:
+        df = get_df_after_given_date(cur_df, plot_since)
+        resampled_df = get_df_after_given_date(cur_resampled_df, plot_since)
+    else:
+        df = cur_df
+
     # plot if necessary
-    _hash = hash(tuple(labels_to_plot))
+    _hash = hash((plot_since, tuple(labels_to_plot)))
     if force_update or _hash not in fig_to_plot:
-        fig_to_plot[_hash] = _plot_fig(labels_to_plot)
+        fig_to_plot[_hash] = _plot_fig(df, resampled_df, labels_to_plot)
 
     return fig_to_plot[_hash]
 
@@ -133,7 +139,14 @@ def update_figure_cb(
             global _EMW_SPAN_GLOBAL_VARIABLE
             _EMW_SPAN_GLOBAL_VARIABLE = stat_smoothing_span
 
-    fig = get_fig(dropdown_value, force_update=force_update)
+    fig = get_fig(
+        dropdown_value,
+        force_update=force_update,
+        plot_since=datetime.datetime.now()
+        - datetime.timedelta(days=30 * recent_months_to_dis)
+        if "only_plot_in_range" in check_list_value
+        else None,
+    )
 
     if not ctx.triggered:
         # initial call when no fig had been created yet
@@ -249,8 +262,8 @@ def get_composit_trend_fig(last_x_days, trend_smoothing_span, force_update=False
 def _plot_composit_trend_fig(last_x_days, trend_smoothing_span, force_update=False):
     beginning_date = datetime.datetime.now() - datetime.timedelta(days=last_x_days)
     composite_fig = get_fig_body_composite_trend(
-        cur_df.copy(),
-        cur_resampled_df.copy(),
+        cur_df,
+        cur_resampled_df,
         beginning_date=beginning_date,
         trend_smoothing_span=trend_smoothing_span,
     )

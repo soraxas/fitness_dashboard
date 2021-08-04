@@ -3,7 +3,8 @@ import datetime
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import bisect
+
+from .utils import get_df_after_given_date
 
 moving_average_window_size = 3 * 8
 
@@ -205,10 +206,8 @@ def get_fig_body_composite_trend(
     df, resampled_df, beginning_date, trend_smoothing_span
 ):
     # only plot all data after the given date
-    df = df[bisect.bisect_left(df.index, beginning_date) :]
-    resampled_df = resampled_df[
-        bisect.bisect_left(resampled_df.index, beginning_date) :
-    ]
+    df = get_df_after_given_date(df, beginning_date).copy()
+    resampled_df = get_df_after_given_date(resampled_df, beginning_date).copy()
 
     body_fat = resampled_df["BODY_FAT"] * resampled_df["WEIGHT"] / 100
     muscle_mass = resampled_df["MUSCLE"]

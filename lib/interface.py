@@ -55,8 +55,9 @@ def construct_page_content(app):
                     id="check_list",
                     options=[
                         {"label": "Fill under curve", "value": "fill_under"},
+                        {"label": "Only plot recent", "value": "only_plot_in_range"},
                     ],
-                    value=["fill_under"],
+                    value=["fill_under", "only_plot_in_range"],
                     inline=True,
                 )
             ]
