@@ -1,4 +1,8 @@
+import os
+import csv
+
 import datetime
+import dateutil
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -199,6 +203,10 @@ def get_plotted_fig_all(df, resampled_df, stats_labels, emw_span):
     for xaxis_attr in (attr for attr in dir(fig.layout) if attr.startswith("xaxis")):
         getattr(fig.layout, xaxis_attr).showticklabels = True
 
+    add_annotations(fig,
+                    [f"x{i}" for i in range(1, len(stats_labels) + 1)],
+                    [f"y{i}" for i in range(1, len(stats_labels) + 1)])
+
     return fig
 
 
@@ -283,7 +291,47 @@ def get_fig_body_composite_trend(
     fig.update_xaxes(title_text="Time")
     fig.update_yaxes(title_text=f"Cumulative delta since origin (KG)")
 
+    add_annotations(fig, xrefs=["x"], yrefs=["y"], y=0)
+
     return fig
+
+def add_annotations(fig, xrefs, yrefs, y=None):
+    if os.path.exists("data/annotation.csv"):
+        for xref, yref in zip(xrefs, yrefs):
+            with open("data/annotation.csv", 'r') as f:
+                reader = csv.reader(f)
+                next(reader)
+                for date, text in reader:
+                    date = dateutil.parser.parse(date)
+                    if date > fig.data[0].x[0]:
+                        add_annotation(fig, date, text, xref=xref, yref=yref, y=y)
+
+def add_annotation(fig, date, text, xref="x", yref="y", y=None):
+    fig.add_annotation(
+            x=date,
+            y=y,
+            xref=xref,
+            yref=yref,
+            text=text,
+            showarrow=True,
+            font=dict(
+                family="Courier New, monospace",
+                size=16,
+                color="#ffffff"
+                ),
+            # align="center",
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=2,
+            # arrowcolor="#636363",
+            # ax=20,
+            # ay=-30,
+            bordercolor="#c7c7c7",
+            borderwidth=2,
+            borderpad=4,
+            bgcolor="#ff7f0e",
+            opacity=0.8
+            )
 
 
 if __name__ == "__main__":
