@@ -303,7 +303,7 @@ def add_annotations(fig, xrefs, yrefs, y=None):
                 next(reader)
                 for date, text in reader:
                     date = dateutil.parser.parse(date)
-                    if date > fig.data[0].x[0]:
+                    if date >= fig.data[0].x[0]:
                         add_annotation(fig, date, text, xref=xref, yref=yref, y=y)
 
 def add_annotation(fig, date, text, xref="x", yref="y", y=None):
